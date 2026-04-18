@@ -1,0 +1,109 @@
+services:
+  init-config:
+    image: alpine:3.20
+    container_name: notex_init_config
+    restart: "no"
+    command:
+      - /bin/sh
+      - -ec
+      - |
+        test -f /build/backend/notex-core.jar || { echo "missing backend build artifact: /build/backend/notex-core.jar" >&2; exit 1; }
+        test -f /build/frontend/index.html || { echo "missing frontend build artifact: /build/frontend/index.html" >&2; exit 1; }
+        test -f /config-src/application-local.yaml || { echo "missing backend config: /config-src/application-local.yaml" >&2; exit 1; }
+        test -f /config-src/nginx.conf || { echo "missing nginx config: /config-src/nginx.conf" >&2; exit 1; }
+        mkdir -p /runtime/backend/config /runtime/nginx/conf.d
+        cp /config-src/application-local.yaml /runtime/backend/config/application-local.yaml
+        cp /config-src/nginx.conf /runtime/nginx/conf.d/default.conf
+    volumes:
+      - ./notex_storage/build:/build:ro
+      - ./notex_storage/runtime:/runtime
+      - ./notex_config:/config-src:ro
+
+  postgres-db:
+    image: pgvector/pgvector:pg16
+    container_name: notex_pg_vector
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+      TZ: ${TZ:-Asia/Shanghai}
+    volumes:
+      - ./notex_storage/data/postgres:/var/lib/postgresql/data
+      - ./notex_config/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - notex-network
+
+  redis:
+    image: redis:8.6.1-alpine
+    container_name: notex_redis_861
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+    volumes:
+      - ./notex_storage/data/redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+    networks:
+      - notex-network
+
+  backend:
+    image: eclipse-temurin:21-jre
+    container_name: notex_backend
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      TZ: ${TZ:-Asia/Shanghai}
+    command:
+      - java
+      - -jar
+      - /app/notex-core.jar
+      - --spring.config.additional-location=file:/app/config/
+    volumes:
+      - ./notex_storage/build/backend/notex-core.jar:/app/notex-core.jar:ro
+      - ./notex_storage/runtime/backend/config:/app/config:ro
+      - ./notex_storage/files:/opt/notex/storage
+    depends_on:
+      init-config:
+        condition: service_completed_successfully
+      postgres-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - notex-network
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: notex_nginx
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"
+    volumes:
+      - ./notex_storage/build/frontend:/usr/share/nginx/html:ro
+      - ./notex_storage/runtime/nginx/conf.d:/etc/nginx/conf.d:ro
+    depends_on:
+      init-config:
+        condition: service_completed_successfully
+      backend:
+        condition: service_started
+    networks:
+      - notex-network
+
+networks:
+  notex-network:
+    driver: bridge

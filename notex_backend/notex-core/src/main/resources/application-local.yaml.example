@@ -1,0 +1,32 @@
+notex:
+  is-debug-mode: true
+
+  datasource:
+    host: 127.0.0.1
+    port: 5432
+    username: your_database_username
+    password: your_database_password
+    database: notex_core
+
+  redis:
+    host: 127.0.0.1
+    port: 6379
+    password: ""
+    database: 0
+    timeout: 500ms
+
+  jwt:
+    # Default Key = Base64 Encode "Notex-Project-Default-Secret". Do not use it in production mode!!
+    secret: Tm90ZXgtUHJvamVjdC1EZWZhdWx0LVNlY3JldA==
+
+  docs:
+    # documentations
+    enabled: true
+
+  images:
+    storage:
+      base-path: "home/pictures/"
+
+  log-level:
+    root: INFO
+    com.notex: DEBUG

@@ -1,0 +1,6 @@
+.roo/
+.env
+notex_storage/build/
+notex_storage/runtime/
+notex_storage/data/
+notex_storage/files/

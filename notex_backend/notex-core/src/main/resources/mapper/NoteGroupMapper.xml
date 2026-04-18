@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.notex.mapper.NoteGroupMapper">
+
+    <!-- 递归删除父文件夹及其所有子文件夹 -->
+    <delete id="deleteGroupRecursively">
+        WITH RECURSIVE groups_to_delete AS (
+            -- 起始节点：要删除的父文件夹
+            SELECT id, parent_group_id
+            FROM note_group
+            WHERE id = #{groupId}
+
+            UNION ALL
+
+            -- 递归查找所有子文件夹
+            SELECT ng.id, ng.parent_group_id
+            FROM note_group ng
+                     INNER JOIN groups_to_delete gtd ON ng.parent_group_id = gtd.id
+        )
+        DELETE FROM note_group
+        WHERE id IN (SELECT id FROM groups_to_delete)
+    </delete>
+
+    <!-- 递归查询目标分组及其所有子分组ID -->
+    <select id="queryAllGroupInTargetGroup" resultType="java.lang.Long">
+        WITH RECURSIVE groups_to_delete AS (
+            -- 起始节点：要删除的父文件夹
+            SELECT id, parent_group_id
+            FROM note_group
+            WHERE id = #{groupId}
+
+            UNION ALL
+
+            -- 递归查找所有子文件夹
+            SELECT ng.id, ng.parent_group_id
+            FROM note_group ng
+                     INNER JOIN groups_to_delete gtd ON ng.parent_group_id = gtd.id
+        )
+        SELECT id FROM groups_to_delete
+    </select>
+
+</mapper>

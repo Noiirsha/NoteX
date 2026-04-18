@@ -1,0 +1,31 @@
+notex:
+  is-debug-mode: false
+
+  datasource:
+    host: postgres-db
+    port: 5432
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    database: ${DB_NAME}
+
+  redis:
+    host: redis
+    port: 6379
+    password: ""
+    database: 0
+    timeout: 500ms
+
+  jwt:
+    # Default Key = Base64 Encode "Notex-Project-Default-Secret". Do not use it in production mode!!
+    secret: Tm90ZXgtUHJvamVjdC1EZWZhdWx0LVNlY3JldA==
+
+  docs:
+    enabled: false
+
+  images:
+    storage:
+      base-path: "/opt/notex/storage/images/"
+
+  log-level:
+    root: INFO
+    com.notex: INFO

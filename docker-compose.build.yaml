@@ -1,0 +1,41 @@
+services:
+  frontend-builder:
+    image: node:22-alpine
+    container_name: notex_frontend_builder
+    working_dir: /workspace/notex_frontend
+    command:
+      - /bin/sh
+      - -ec
+      - |
+        npm install
+        npm run build
+        mkdir -p /output/frontend
+        rm -rf /output/frontend/*
+        cp -r dist/. /output/frontend/
+    volumes:
+      - .:/workspace
+      - ./notex_storage/build:/output
+    networks:
+      - notex-build-network
+
+  backend-builder:
+    image: maven:3.9.9-eclipse-temurin-21
+    container_name: notex_backend_builder
+    working_dir: /workspace/notex_backend
+    command:
+      - /bin/sh
+      - -ec
+      - |
+        mvn -pl notex-core -am clean package -DskipTests
+        mkdir -p /output/backend
+        cp /workspace/notex_backend/notex-core/target/notex-core-*.jar /output/backend/notex-core.jar
+    volumes:
+      - .:/workspace
+      - ./notex_storage/build:/output
+    networks:
+      - notex-build-network
+
+networks:
+  notex-build-network:
+    name: notex-build-network
+    driver: bridge

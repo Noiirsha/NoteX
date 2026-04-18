@@ -1,0 +1,97 @@
+server:
+  port: 10000
+spring:
+  application:
+    name: NoteX-Core
+
+  profiles:
+    active: local
+
+  # ai configuration
+  ai:
+    openai:
+      base-url: "https://api.openai.com"
+      api-key: "sk-default-api-key"
+      chat:
+        options:
+          model: "default-model"
+    chat:
+      memory:
+        repository:
+          jdbc:
+            initialize-schema: always
+
+    # PG Vector Configuration
+    vectorstore:
+      pgvector:
+        initialize-schema: true
+        dimensions: 1024
+        index-type: hnsw # default
+        distance-type: cosine-distance # default
+
+    # MCP Server Configuration
+#    mcp:
+#      client:
+#        type: async
+#        request-timeout: 60s
+#        toolcallback:
+#          enabled: true
+#        sse:
+#          connections:
+#            mcp-server-notex-local.url: http://localhost:10002
+        # external mcp servers
+        # stdio:
+        #  servers-configuration: classpath:/EXA.json
+
+
+  # data source configuration
+  datasource:
+    url: jdbc:postgresql://${notex.datasource.host}:${notex.datasource.port}/${notex.datasource.database}
+    driver-class-name: org.postgresql.Driver
+    username: ${notex.datasource.username}
+    password: ${notex.datasource.password}
+
+  data:
+    redis:
+      host: ${notex.redis.host}
+      port: ${notex.redis.port}
+      password: ${notex.redis.password}
+      database: ${notex.redis.database}
+      timeout: ${notex.redis.timeout}
+
+# mp configuration
+mybatis-plus:
+  global-config:
+    db-config:
+      id-type: auto
+  configuration:
+    map-underscore-to-camel-case: true
+
+# logging configuration
+logging:
+  pattern:
+    console: "%clr(%5p){FATAL=red, ERROR=red, WARN=yellow, INFO=green, DEBUG=blue, TRACE=cyan} | %d{yyyy-MM-dd HH:mm:ss.SSS} | %-16.16class{0} | %m%n"
+    file: "%p | %d{yyyy-MM-dd HH:mm:ss.SSS} | %-16.16class{0} | %m%n"
+
+  level:
+    root: ${notex.log-level.root}
+    com.notex: ${notex.log-level.com.notex}
+
+
+# notex custom configuration
+notex:
+  jwt:
+    secret: ${notex.jwt.secret}
+
+# documentation
+springdoc:
+  api-docs:
+    enabled: ${notex.docs.enabled}
+    path: /debug/api-docs
+
+  swagger-ui:
+    enabled: ${notex.docs.enabled}
+    path: /debug/swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+  show-actuator: true
