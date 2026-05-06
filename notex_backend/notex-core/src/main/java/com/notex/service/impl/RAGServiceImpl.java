@@ -81,6 +81,12 @@ public class RAGServiceImpl implements IRAGService {
         if (StrUtil.isBlank(note.getContent())) {
             // 内容为空 - 清空原有索引
             deleteOldVectorsByNoteUUID(vectorStore, noteUuid);
+            Db.lambdaUpdate(Note.class)
+                .eq(Note::getId, note.getId())
+                .set(Note::getIsIndexed, true)
+                .update();
+
+            return;
         }
 
         // 3. 笔记内容 -> Document
